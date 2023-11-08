@@ -111,8 +111,27 @@ class Trailer:
         line_y = self.y - 5 * sin(radians(self.ang))
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (line_x, line_y))
 
-pololu = Pololu(250, 250, 20, color=(0, 0, 255))
-trailer = Trailer(250, 250, 100, 50, color=(255, 0, 0))
+        # Rotate tire positions
+        # Positions based on trailer rect
+        # tire_x1 = rotated_trailer.get_rect().left + 5  
+        # tire_y1 = rotated_trailer.get_rect().bottom - 5
+        # tire_x2 = rotated_trailer.get_rect().right - 5
+        # tire_y2 = rotated_trailer.get_rect().bottom - 5
+
+        # tire_x1, tire_y1 = pygame.transform.rotate((tire_x1, tire_y1), self.ang)
+        # tire_x2, tire_y2 = pygame.transform.rotate((tire_x2, tire_y2), self.ang)
+
+        # # Draw tires
+        # tire_width = 10
+        # tire_height = 20
+        # pygame.draw.ellipse(screen, (0,0,0), (tire_x1, tire_y1, tire_width, tire_height))
+        # pygame.draw.ellipse(screen, (0,0,0), (tire_x2, tire_y2, tire_width, tire_height))
+
+
+        
+
+pololu = Pololu(250, 250, 20, color=(235, 234, 206))
+trailer = Trailer(250, 250, 100, 50, color=(229, 155, 235))
 
 # Main game loop
 running = True 
@@ -140,7 +159,7 @@ while running:
     trailer.physics_update(pololu)
 
     # Draw stuff
-    screen.fill((255, 255, 255))  # white background
+    screen.fill((94, 99, 110))  # background
     pololu.draw(screen)
     trailer.draw(screen)
 
