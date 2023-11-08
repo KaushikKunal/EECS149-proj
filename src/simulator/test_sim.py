@@ -1,5 +1,6 @@
 import pygame
 import sys
+from math import sin, cos, radians
 
 # def tick_sim():
 
@@ -19,39 +20,30 @@ circle_y = 250
 circle_radius = 50
 circle_color = (0, 0, 255)
 
-# Circle velocity
+circle_angle = 0
 circle_vx = 0
 circle_vy = 0
 
 # Main game loop
 running = True 
 while running:
-
     # Check for quit event
-    for event in pygame.event.get():
+    keys = pygame.key.get_pressed()
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
-        
-        # Keyboard input    
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                print("LEFTU")
-                circle_vx = -5
-            elif event.key == pygame.K_RIGHT:
-                circle_vx = 5   
-            elif event.key == pygame.K_UP:
-                circle_vy = -5
-            elif event.key == pygame.K_DOWN:
-                circle_vy = 5
-        
-        # Reset velocity on key release
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                pass
-                # circle_vx = 0
-            elif event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                pass
-                # circle_vy = 0
+
+    if keys[pygame.K_LEFT]:
+        circle_angle += 5
+    if keys[pygame.K_RIGHT]:
+        circle_angle -= 5
+    if keys[pygame.K_UP]:
+        circle_vx = 5 * cos(radians(circle_angle))
+        circle_vy = -5 * sin(radians(circle_angle))
+    if keys[pygame.K_DOWN]:
+        circle_vx = -5 * cos(radians(circle_angle))
+        circle_vy = 5 * sin(radians(circle_angle))
 
     # Update circle position
     circle_x += circle_vx
@@ -71,6 +63,10 @@ while running:
 
     # Draw circle
     pygame.draw.circle(screen, circle_color, (circle_x, circle_y), circle_radius)
+
+    line_x = circle_x + circle_radius * cos(radians(circle_angle))
+    line_y = circle_y - circle_radius * sin(radians(circle_angle))
+    pygame.draw.line(screen, (0,0,0), (circle_x, circle_y), (line_x, line_y))
 
     # Update display
     pygame.display.update()
