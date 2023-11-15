@@ -9,7 +9,7 @@ from math import *
 pygame.init()
 
 # Set up the display surface 
-screen = pygame.display.set_mode((500, 500))
+screen = pygame.display.set_mode((700, 600))
 
 # Set up the clock
 clock = pygame.time.Clock()
@@ -26,17 +26,38 @@ def get_dist_to(x1, y1, x2, y2):
     dy = y2 - y1
     return sqrt(dx**2 + dy**2)
 
-class Pololu:
-    def __init__(self, x, y, radius, color):
+class Object:
+    def __init__(self, x, y, color):
         self.x = x 
         self.y = y
+        self.color = color
+
+        self.vel = 0
+        self.ang = 0  # degrees
+
+    def draw_tyre(self, screen, x_off, y_off, width=5, height=20):
+        # Calculate the rotated coordinates of the tire
+        rotated_x = self.x + x_off * sin(radians(self.ang)) + y_off * cos(radians(self.ang))
+        rotated_y = self.y + x_off * cos(radians(self.ang)) - y_off * sin(radians(self.ang))
+
+        # pygame.draw.circle(screen, (0,0,0), (rotated_x, rotated_y), 3)
+        tire_surf = pygame.Surface((height, width), pygame.SRCALPHA)
+        pygame.draw.ellipse(tire_surf, (0,0,0), tire_surf.get_rect())
+        rotated_tire = pygame.transform.rotate(tire_surf, self.ang)
+        rect = rotated_tire.get_rect()
+        rect.center = (rotated_x, rotated_y)
+        screen.blit(rotated_tire, rect)
+
+
+class Pololu(Object):
+    def __init__(self, x, y, radius, color):
+        super().__init__(x, y, color)
         self.vel = 0
         self.ang = 0  # degrees
         self.acc = 0
         self.ang_acc = 0  # degrees per second
 
         self.radius = radius
-        self.color = color
 
     def physics_update(self):
         self.ang += self.ang_acc
@@ -51,53 +72,49 @@ class Pololu:
         # friction
         self.vel *= 0.95
 
-        # # Bounce off edges
-        # if circle_x < 0 or circle_x > 500:
-        #     circle_vx = -circle_vx
-        # if circle_y < 0 or circle_y > 500:
-        #     circle_vy = -circle_vy
-
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+        self.draw_tyre(screen, self.radius, 0)
+        self.draw_tyre(screen, -self.radius, 0)
         line_x = self.x + self.radius * cos(radians(self.ang))
         line_y = self.y - self.radius * sin(radians(self.ang))
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (line_x, line_y))
 
 
-class Trailer:
-    def __init__(self, x, y, length, width, color):
-        self.x = x 
-        self.y = y
+class Trailer(Object):
+    def __init__(self, x, y, length, width, axle_offset, color):
+        super().__init__(x, y, color)
         self.vel = 0
         self.ang = 0
 
         self.length = length
         self.width = width
-        self.color = color
+        self.axle_offset = axle_offset  # distance from center of trailer to axle (+ve is forward, -ve is backward)
 
-    def physics_update(self, pololu):
-        self.ang = get_dir_to(self.x, self.y, pololu.x, pololu.y)
-        dist = get_dist_to(self.x, self.y, pololu.x, pololu.y)
-        move_dist = dist - pololu.radius - self.length/2
+        self.line_length = length/4  # for drawing line
+
+    def physics_update(self, hitch, link_length):
+        # rotate trailer about axle
+        axle_x = self.x + self.axle_offset * cos(radians(self.ang))
+        axle_y = self.y - self.axle_offset * sin(radians(self.ang))
+        self.ang = get_dir_to(axle_x, axle_y, hitch.x, hitch.y)
+        self.x = axle_x - self.axle_offset * cos(radians(self.ang))
+        self.y = axle_y + self.axle_offset * sin(radians(self.ang))
+        
+        # attach trailer to hitch
+        dist = get_dist_to(self.x, self.y, hitch.x, hitch.y)
+        move_dist = dist - link_length
         self.x += move_dist * cos(radians(self.ang))
         self.y -= move_dist * sin(radians(self.ang))
-        # pass
 
 
     def draw(self, screen):
-        # trailer_rect = pygame.Rect(self.x - self.width/2, self.y - self.length/2, 
-        #                    self.width, self.length)
-        # pygame.draw.rect(screen, self.color, trailer_rect)
-        # Rotate trailer
-        # Create trailer surface 
-
         # TODO CAN BE OPTIMIZED BY CREATING COPY OF SURFACE, SEE https://stackoverflow.com/questions/36510795/rotating-a-rectangle-not-image-in-pygame
         trailer_surf = pygame.Surface((self.length, self.width))
         trailer_surf.set_colorkey((0,0,0))
         trailer_surf.fill(self.color)
 
         # Rotate trailer surface
-        # self.ang += 1
         rotated_trailer = pygame.transform.rotate(trailer_surf, self.ang) 
 
         # Position rotated trailer
@@ -107,31 +124,23 @@ class Trailer:
         # Draw rotated trailer
         screen.blit(rotated_trailer, rect)
 
-        line_x = self.x + 5 * cos(radians(self.ang))
-        line_y = self.y - 5 * sin(radians(self.ang))
+        line_x = self.x + self.line_length * cos(radians(self.ang))
+        line_y = self.y - self.line_length * sin(radians(self.ang))
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (line_x, line_y))
 
-        # Rotate tire positions
-        # Positions based on trailer rect
-        # tire_x1 = rotated_trailer.get_rect().left + 5  
-        # tire_y1 = rotated_trailer.get_rect().bottom - 5
-        # tire_x2 = rotated_trailer.get_rect().right - 5
-        # tire_y2 = rotated_trailer.get_rect().bottom - 5
-
-        # tire_x1, tire_y1 = pygame.transform.rotate((tire_x1, tire_y1), self.ang)
-        # tire_x2, tire_y2 = pygame.transform.rotate((tire_x2, tire_y2), self.ang)
-
-        # # Draw tires
-        # tire_width = 10
-        # tire_height = 20
-        # pygame.draw.ellipse(screen, (0,0,0), (tire_x1, tire_y1, tire_width, tire_height))
+        self.draw_tyre(screen, self.width/2, self.axle_offset)
+        self.draw_tyre(screen, -self.width/2, self.axle_offset)
+        # Draw tires
+        tire_width = 10
+        tire_height = 20
+        # pygame.draw.ellipse(screen, (0,0,0), (tire_x1 - , tire_y1, tire_width, tire_height))
         # pygame.draw.ellipse(screen, (0,0,0), (tire_x2, tire_y2, tire_width, tire_height))
 
 
         
 
 pololu = Pololu(250, 250, 20, color=(235, 234, 206))
-trailer = Trailer(250, 250, 100, 50, color=(229, 155, 235))
+trailer = Trailer(250, 250, 100, 50, -30, color=(229, 155, 235))
 
 # Main game loop
 running = True 
@@ -155,11 +164,13 @@ while running:
         pololu.acc = -0.1
 
     # Update physics
+    link_length = pololu.radius + trailer.length/2  # length of link connecting pololu and trailer
     pololu.physics_update()
-    trailer.physics_update(pololu)
+    trailer.physics_update(pololu, link_length)
 
     # Draw stuff
-    screen.fill((94, 99, 110))  # background
+    screen.fill((157, 162, 171))  # background
+    pygame.draw.line(screen, (0,0,0), (350, 100), (350, 500))
     pololu.draw(screen)
     trailer.draw(screen)
 
@@ -167,6 +178,6 @@ while running:
     pygame.display.update()
 
     # Tick clock
-    clock.tick(120)  # 60 fps
+    clock.tick(120)  # fps
 
 pygame.quit()
