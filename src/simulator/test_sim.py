@@ -1,12 +1,40 @@
 import pygame
 import sys
 from math import *
+import random
+
+# Initialize Pygame 
+pygame.init()
+
+class Debugger:
+    def __init__(self):
+        self.debug_lines = []
+        self.fontsize = 15
+        self.font = pygame.font.SysFont("sfcompact", self.fontsize)
+        self.margin = 2
+
+    def log_text(self, text):
+        self.debug_lines.append(text)
+
+    def log_var(self, var_name, var):
+        if (type(var) == float):
+            self.debug_lines.append(f"{var_name}: {var:.2f}")
+        else:
+            self.debug_lines.append(f"{var_name}: {var}")
+
+    def draw(self, screen):
+        for i, line in enumerate(self.debug_lines):
+            text_surface = self.font.render(line, True, (0, 0, 0))
+            # text_surface = self.font.render(line, True, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))  # PARTY MODE
+            screen.blit(text_surface, (self.margin, self.margin + (self.margin + self.fontsize)*i))
+        self.debug_lines = ["DEBUG"]  # clear debug lines
+
+debugger = Debugger()
 
 # def tick_sim():
 
 
-# Initialize Pygame 
-pygame.init()
+
 
 # Set up the display surface 
 screen = pygame.display.set_mode((700, 600))
@@ -25,6 +53,7 @@ def get_dist_to(x1, y1, x2, y2):
     dx = x2 - x1
     dy = y2 - y1
     return sqrt(dx**2 + dy**2)
+        
 
 class Object:
     def __init__(self, x, y, color):
@@ -106,6 +135,7 @@ class Trailer(Object):
         move_dist = dist - link_length
         self.x += move_dist * cos(radians(self.ang))
         self.y -= move_dist * sin(radians(self.ang))
+        debugger.log_var("trailer ang", self.ang)
 
 
     def draw(self, screen):
@@ -130,11 +160,6 @@ class Trailer(Object):
 
         self.draw_tyre(screen, self.width/2, self.axle_offset)
         self.draw_tyre(screen, -self.width/2, self.axle_offset)
-        # Draw tires
-        tire_width = 10
-        tire_height = 20
-        # pygame.draw.ellipse(screen, (0,0,0), (tire_x1 - , tire_y1, tire_width, tire_height))
-        # pygame.draw.ellipse(screen, (0,0,0), (tire_x2, tire_y2, tire_width, tire_height))
 
 
         
@@ -173,6 +198,7 @@ while running:
     pygame.draw.line(screen, (0,0,0), (350, 100), (350, 500))
     pololu.draw(screen)
     trailer.draw(screen)
+    debugger.draw(screen)
 
     # Update display
     pygame.display.update()
