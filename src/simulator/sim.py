@@ -180,12 +180,11 @@ class Trailer(Object):
         self.draw_tyre(screen, -self.width/2, self.axle_offset)
 
 class Truck():
-    def __init__(self, x, y, color):
-        self.color = color
-        self.num_pivots = -1
-        self.pololu = Pololu(x, y, 20, color)
-        self.hitches = [Hitch(x, y, 5, color) for i in range(self.num_pivots - 1)]
-        self.trailer = Trailer(x, y, 100, 50, -30, color)   
+    def __init__(self, x, y, num_pivots):
+        self.num_pivots = num_pivots
+        self.pololu = Pololu(x, y, 20, (235, 234, 206))
+        self.hitches = [Hitch(x, y, 5, (20, 20, 20)) for i in range(self.num_pivots - 1)]
+        self.trailer = Trailer(x, y, 100, 50, -30, (229, 155, 235))   
 
     def physics_update(self):
         self.pololu.physics_update()
@@ -211,7 +210,7 @@ class Truck():
 # pololu = Pololu(250, 250, 20, color=(235, 234, 206))
 # hitch = Hitch(250, 250, 5, color=(0, 0, 0))
 # trailer = Trailer(250, 250, 100, 50, -30, color=(229, 155, 235))
-truck = Truck(250, 250, color=(229, 155, 235))
+truck = Truck(250, 250, 2)
 # Main game loop
 running = True 
 while running:
