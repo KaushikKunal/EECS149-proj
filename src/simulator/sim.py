@@ -2,6 +2,8 @@ import pygame
 import sys
 from math import *
 import random
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Initialize Pygame 
 pygame.init()
@@ -184,7 +186,54 @@ class Truck():
         self.num_pivots = num_pivots
         self.pololu = Pololu(x, y, 20, (235, 234, 206))
         self.hitches = [Hitch(x, y, 5, (20, 20, 20)) for i in range(self.num_pivots - 1)]
-        self.trailer = Trailer(x, y, 100, 50, -30, (229, 155, 235))   
+        self.trailer = Trailer(x, y, 100, 50, -30, (229, 155, 235))
+
+        self.error_last = np.array([0, 0])
+        self.integral_error = np.array([0, 0])
+
+    def brain(self, target_x, target_y):
+        # target_dir = get_dir_to(self.trailer.x, self.trailer.y, target_x, target_y)
+        # debugger.log_var("target dir", target_dir)
+        # debugger.log_var("current dir", (self.trailer.ang - target_dir) % 360)
+
+        timestep = 1/60
+        kp = 0.36
+        kd = 0.001
+        ki = 40
+
+        self.error = np.array([target_x - self.pololu.x, target_y - self.pololu.y]) 
+        self.integral_error = self.integral_error + self.error * timestep
+        self.derivative_error = (self.error - self.error_last) / timestep
+        self.error_last = self.error
+
+        debugger.log_var("error", self.error)
+        output = kp * self.error + kd * self.derivative_error + ki * self.integral_error
+
+        debugger.log_var("output", output)
+        self.pololu.x += output[0]
+        self.pololu.y += output[1]
+
+        # self.pololu.ang = degrees(-atan2(output[1], output[0]))
+        # debugger.log_var("norm", np.linalg.norm(output))
+        # self.pololu.acc = np.linalg.norm(output)
+
+        # pos_error = np.array([target_x - self.trailer.x, target_y - self.trailer.y])
+        # vel_error = 0
+        # desired_acc = kp * pos_error + kd * vel_error
+        # self.pololu.ang = degrees(-atan2(desired_acc[1], desired_acc[0]))
+        # self.pololu.acc = 0.1
+
+        # debugger.log_var("desired acc", desired_acc)
+        # debugger.log_var("desired ang", degrees(-atan2(desired_acc[1], desired_acc[0])))
+
+        # ziegler nichols
+        # response saturation
+
+
+
+        
+        # ang_error = (self.trailer.ang - target_dir) % 360
+
 
     def physics_update(self):
         self.pololu.physics_update()
@@ -210,10 +259,14 @@ class Truck():
 # pololu = Pololu(250, 250, 20, color=(235, 234, 206))
 # hitch = Hitch(250, 250, 5, color=(0, 0, 0))
 # trailer = Trailer(250, 250, 100, 50, -30, color=(229, 155, 235))
-truck = Truck(250, 250, 2)
+
+truck = Truck(250, 250, 1)
 # Main game loop
 running = True 
 while running:
+    fps = int(clock.get_fps())
+    debugger.log_var("fps", fps)
+
     keys = pygame.key.get_pressed()
     events = pygame.event.get()
 
@@ -222,19 +275,24 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # key presses
-    if keys[pygame.K_LEFT]:
-        truck.pololu.ang += 1
-    if keys[pygame.K_RIGHT]:
-        truck.pololu.ang -= 1
-    if keys[pygame.K_UP]:
-        truck.pololu.acc = 0.1
-    if keys[pygame.K_DOWN]:
-        truck.pololu.acc = -0.1
+    if keys[pygame.K_SPACE]:
+        truck.brain(250, 250)
+    else:
+        # key presses
+        if keys[pygame.K_LEFT]:
+            truck.pololu.ang += 1
+        if keys[pygame.K_RIGHT]:
+            truck.pololu.ang -= 1
+        if keys[pygame.K_UP]:
+            truck.pololu.acc = 0.1
+        if keys[pygame.K_DOWN]:
+            truck.pololu.acc = -0.1
+    
+    # debugger.log_var("ang", truck.pololu.ang)
+    
 
     # Update physics
     truck.physics_update()
-
 
     # Draw stuff
     screen.fill((157, 162, 171))  # background
@@ -246,6 +304,6 @@ while running:
     pygame.display.update()
 
     # Tick clock
-    clock.tick(120)  # fps
+    clock.tick(60)  # fps
 
 pygame.quit()
