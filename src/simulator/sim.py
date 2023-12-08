@@ -3,10 +3,14 @@ import sys
 from math import *
 import random
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 
 # Initialize Pygame 
 pygame.init()
+plt.ion()  # Turn on interactive mode
+fig, ax = plt.subplots()
+error_history = []
 
 class Debugger:
     def __init__(self):
@@ -205,6 +209,7 @@ class Truck():
         self.integral_error = self.integral_error + self.error * timestep
         self.derivative_error = (self.error - self.error_last) / timestep
         self.error_last = self.error
+        error_history.append(self.error[0])
 
         debugger.log_var("error", self.error)
         output = kp * self.error + kd * self.derivative_error + ki * self.integral_error
@@ -263,6 +268,7 @@ class Truck():
 truck = Truck(250, 250, 1)
 # Main game loop
 running = True 
+tick = 0
 while running:
     fps = int(clock.get_fps())
     debugger.log_var("fps", fps)
@@ -302,8 +308,20 @@ while running:
 
     # Update display
     pygame.display.update()
+    if (tick % 60 == 0):
+        ax.clear()
+        ax.plot(error_history[-200:])
+        ax.set_title('Error History')
+        ax.set_xlabel('Timestep')
+        ax.set_ylabel('Error')
+        plt.draw()
+        plt.pause(0.001)
 
     # Tick clock
     clock.tick(60)  # fps
+    tick += 1
+
+plt.ioff()
+
 
 pygame.quit()
