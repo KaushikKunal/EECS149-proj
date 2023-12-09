@@ -31,9 +31,6 @@ class Debugger:
 
 debugger = Debugger()
 
-# def tick_sim():
-
-
 
 
 # Set up the display surface 
@@ -64,47 +61,126 @@ class Object:
         self.vel = 0
         self.ang = 0  # degrees
 
-    def draw_tyre(self, screen, x_off, y_off, width=5, height=20):
+    def draw_tyre(self, screen, x_off, y_off, width=5, height=20, color=(0,0,0)):
         # Calculate the rotated coordinates of the tire
         rotated_x = self.x + x_off * sin(radians(self.ang)) + y_off * cos(radians(self.ang))
         rotated_y = self.y + x_off * cos(radians(self.ang)) - y_off * sin(radians(self.ang))
 
         # pygame.draw.circle(screen, (0,0,0), (rotated_x, rotated_y), 3)
         tire_surf = pygame.Surface((height, width), pygame.SRCALPHA)
-        pygame.draw.ellipse(tire_surf, (0,0,0), tire_surf.get_rect())
+        pygame.draw.ellipse(tire_surf, color, tire_surf.get_rect())
         rotated_tire = pygame.transform.rotate(tire_surf, self.ang)
         rect = rotated_tire.get_rect()
         rect.center = (rotated_x, rotated_y)
         screen.blit(rotated_tire, rect)
 
 
+class Wheel(Object):
+    def __init__(self, height, width, friction, color):
+        self.height = height
+        self.width = width
+        self.friction = friction
+        self.color = color
+        self.vel = 0
+
+        self.friction = friction
+
+    def required_acc(self, time, dist):
+        """
+        Returns the required acceleration to
+        travel dist in the next time step
+        """
+        return (2 / (time * time)) * (dist - self.vel * time)
+    def physics_update(self, time, acceleration):
+        """ Updates wheel variables.
+        Returns the distance travelled this time step.
+        """
+        # self.vel *= self.friction # not accurate
+        dist_travelled = self.vel * time + (1/2) * acceleration * time * time # kinematic equation
+        self.vel += acceleration
+        return dist_travelled
+
+    def draw(self, screen, parent, x_off, y_off):
+        parent.draw_tyre(screen, x_off, y_off, self.width, self.height, self.color)
+
+
+
 class Pololu(Object):
     def __init__(self, x, y, radius, color):
         super().__init__(x, y, color)
-        self.vel = 0
-        self.ang = 0  # degrees
-        self.acc = 0
-        self.ang_acc = 0  # degrees per second
-
+        self.left_wheel = Wheel(20, 5, 0.7, (255, 255, 100))
+        self.right_wheel = Wheel(20, 5, 0.7, (255, 100, 100))
+        self.trailer = Trailer(250, 250, 100, 50, -30, color=(229, 155, 235))
         self.radius = radius
+        self.link_length = self.radius + self.trailer.length / 2  # length of link connecting pololu and trailer
+        self.ang_cutoff = 2
 
-    def physics_update(self):
-        self.ang += self.ang_acc
-        self.vel += self.acc
+    def physics_update(self, time, desired_angle, desired_speed):
+        acc_left, acc_right = self.control_acc(time, desired_angle, desired_speed)
 
-        self.x += self.vel * cos(radians(self.ang))
-        self.y -= self.vel * sin(radians(self.ang))
+        trav_left = self.left_wheel.physics_update(time, acc_left)
+        trav_right = self.right_wheel.physics_update(time, acc_right)
 
-        self.acc = 0
-        self.ang_acc = 0
+        if trav_left == trav_right:
+            # driving straight
+            change_y = 0
+            change_x = trav_left
+            change_ang = 0
+        elif trav_left == -trav_right:
+            # turning with zero speed
+            change_ang = trav_right / self.radius
+            change_x, change_y = 0, 0
+        else:
+            # turning
+            change_ang = (trav_right - trav_left) / (2 * self.radius)
+            change_x = (trav_right / change_ang - self.radius) * sin(change_ang)
+            change_y = (trav_right / change_ang - self.radius) * (1 - cos(change_ang))
 
-        # friction
-        self.vel *= 0.95
+        self.x += cos(radians(self.ang)) * change_x + sin(radians(self.ang)) * change_y
+        self.y += -sin(radians(self.ang)) * change_x + cos(radians(self.ang)) * change_y
+        self.ang += change_ang * 360 / (2 * pi)
+        self.ang %= 360
+
+        self.trailer.physics_update(1, pololu, self.link_length)
+
+    def control_acc(self, next_time, desired_angle, desired_speed):
+        true_ang_err = desired_angle - self.get_trailer_ang()
+        if true_ang_err > 180:
+            true_ang_err -= 360
+        if true_ang_err < -180:
+            true_ang_err += 360
+        ang_err = radians(true_ang_err)
+        debugger.log_var("ang_err", true_ang_err)
+        trav_right, trav_left = 0, 0
+        if -5 < true_ang_err < 5:
+            # driving straight
+            trav_right = desired_speed
+            trav_left = desired_speed
+        elif desired_speed <= 0:
+            # turning, zero speed
+            trav_right = ang_err * self.radius
+            trav_left = -trav_right
+        else:
+            # turning, positive speed
+            trav_right = desired_speed + self.radius * ang_err
+            trav_left = desired_speed - self.radius * ang_err
+        acc_left = self.left_wheel.required_acc(next_time, trav_left)
+        acc_right = self.right_wheel.required_acc(next_time, trav_right)
+        return (acc_left, acc_right)
+
+    def get_trailer_ang(self):
+        relative_ang = self.ang - self.trailer.ang
+        if relative_ang > 180:
+            relative_ang -= 360
+        if relative_ang < -180:
+            relative_ang += 360
+        return relative_ang
 
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
-        self.draw_tyre(screen, self.radius, 0)
-        self.draw_tyre(screen, -self.radius, 0)
+        self.left_wheel.draw(screen, self, -self.radius, 0)
+        self.right_wheel.draw(screen, self, self.radius, 0)
+        self.trailer.draw(screen)
         line_x = self.x + self.radius * cos(radians(self.ang))
         line_y = self.y - self.radius * sin(radians(self.ang))
         pygame.draw.line(screen, (0,0,0), (self.x, self.y), (line_x, line_y))
@@ -122,7 +198,7 @@ class Trailer(Object):
 
         self.line_length = length/4  # for drawing line
 
-    def physics_update(self, hitch, link_length):
+    def physics_update(self, time, hitch, link_length):
         # rotate trailer about axle
         axle_x = self.x + self.axle_offset * cos(radians(self.ang))
         axle_y = self.y - self.axle_offset * sin(radians(self.ang))
@@ -165,10 +241,11 @@ class Trailer(Object):
         
 
 pololu = Pololu(250, 250, 20, color=(235, 234, 206))
-trailer = Trailer(250, 250, 100, 50, -30, color=(229, 155, 235))
+desired_angle = 0
+desired_speed = 0
 
 # Main game loop
-running = True 
+running = True
 while running:
     keys = pygame.key.get_pressed()
     events = pygame.event.get()
@@ -180,30 +257,38 @@ while running:
 
     # key presses
     if keys[pygame.K_LEFT]:
-        pololu.ang += 1
+        desired_angle += 5
     if keys[pygame.K_RIGHT]:
-        pololu.ang -= 1
+        desired_angle -= 5
     if keys[pygame.K_UP]:
-        pololu.acc = 0.1
+        desired_speed += 0.3
     if keys[pygame.K_DOWN]:
-        pololu.acc = -0.1
+        desired_speed -= 0.3
+
+    # desired_speed -= 0.1
+    if desired_speed < 0:
+        desired_speed = 0
+
+    debugger.log_var("des_ang", desired_angle)
+    debugger.log_var("des_spd", desired_speed)
 
     # Update physics
-    link_length = pololu.radius + trailer.length/2  # length of link connecting pololu and trailer
-    pololu.physics_update()
-    trailer.physics_update(pololu, link_length)
+    pololu.physics_update(1, desired_angle, desired_speed)
+
+    # Debug information
+    debugger.log_var("trav_right", pololu.right_wheel.vel)
+    debugger.log_var("trav_left", pololu.left_wheel.vel)
 
     # Draw stuff
     screen.fill((157, 162, 171))  # background
     pygame.draw.line(screen, (0,0,0), (350, 100), (350, 500))
     pololu.draw(screen)
-    trailer.draw(screen)
     debugger.draw(screen)
 
     # Update display
     pygame.display.update()
 
     # Tick clock
-    clock.tick(120)  # fps
+    clock.tick(30)  # fps
 
 pygame.quit()
