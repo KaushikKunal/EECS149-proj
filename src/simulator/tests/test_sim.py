@@ -126,10 +126,6 @@ class Pololu(Object):
             change_y = 0
             change_x = trav_left
             change_ang = 0
-        elif trav_left == -trav_right:
-            # turning with zero speed
-            change_ang = trav_right / self.radius
-            change_x, change_y = 0, 0
         else:
             # turning
             change_ang = (trav_right - trav_left) / (2 * self.radius)
@@ -156,10 +152,6 @@ class Pololu(Object):
             # driving straight
             trav_right = desired_speed
             trav_left = desired_speed
-        elif desired_speed <= 0:
-            # turning, zero speed
-            trav_right = ang_err * self.radius
-            trav_left = -trav_right
         else:
             # turning, positive speed
             trav_right = desired_speed + self.radius * ang_err
@@ -266,8 +258,8 @@ while running:
         desired_speed -= 0.3
 
     # desired_speed -= 0.1
-    if desired_speed < 0:
-        desired_speed = 0
+    # if desired_speed < 0:
+    #     desired_speed = 0
 
     debugger.log_var("des_ang", desired_angle)
     debugger.log_var("des_spd", desired_speed)
