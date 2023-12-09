@@ -148,7 +148,7 @@ class Pololu(Object):
         ang_err = radians(true_ang_err)
         debugger.log_var("ang_err", true_ang_err)
         trav_right, trav_left = 0, 0
-        if -5 < true_ang_err < 5:
+        if ang_err == 0:
             # driving straight
             trav_right = desired_speed
             trav_left = desired_speed
