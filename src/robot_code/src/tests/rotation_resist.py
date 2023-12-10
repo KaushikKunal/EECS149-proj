@@ -15,7 +15,6 @@
 # This example is similar to gyro_turn.py.
 
 from pololu_3pi_2040_robot import robot
-from pololu_3pi_2040_robot.extras import editions
 import time
 
 motors = robot.Motors()
