@@ -49,8 +49,7 @@ def main():
         # INPUT TO CONTROLLER
         # pololu_pot_angle
         # hitch_pot_angle
-        # left_wheel_dist - prev_left_wheel_dist
-        # right_wheel_dist - prev_right_wheel_dist
+        # 
 
         # OUTPUT FROM CONTROLLER
         left_motor_speed =  0.1

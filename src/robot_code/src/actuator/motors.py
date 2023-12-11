@@ -1,16 +1,34 @@
 from pololu_3pi_2040_robot import robot
 from time import sleep, time
 
-FEEDBACK_GAIN = 0.3  # change this
 motors = robot.Motors()
+kp = 0.1  # Adjust proportional gain based on your system
+ki = 0.01  # Adjust integral gain based on your system
+kd = 0.01  # Adjust derivative gain based on your system
+left_integral = 0
+right_integral = 0
+left_prev_error = 0
+right_prev_error = 0
 
 # sets L/R wheel speeds in m/s
 def set_wheel_speeds(left_wheel_speed, right_wheel_speed, cur_left_wheel_speed=None, cur_right_wheel_speed=None):
     
-    # feedback if previous speed is given
+    # PID feedback if previous speed is given
     if (cur_left_wheel_speed is not None and cur_right_wheel_speed is not None):
-        left_wheel_speed += FEEDBACK_GAIN * (left_wheel_speed - cur_left_wheel_speed)
-        right_wheel_speed += FEEDBACK_GAIN * (right_wheel_speed - cur_right_wheel_speed)
+        left_error = left_wheel_speed - cur_left_wheel_speed
+        right_error = right_wheel_speed - cur_right_wheel_speed
+
+        left_integral = left_integral + left_error
+        right_integral = right_integral + right_error
+
+        left_derivative = left_error - left_prev_error
+        right_derivative = right_error - right_prev_error
+
+        left_prev_error = left_error
+        right_prev_error = right_error
+
+        left_motor_speed = kp*left_error + ki*left_integral + kd*left_derivative
+        right_motor_speed = kp*right_error + ki*right_integral + kd*right_derivative
 
     # convert wheel speeds to motor speeds
     left_motor_speed = left_wheel_speed * motors.MAX_SPEED/1.5
