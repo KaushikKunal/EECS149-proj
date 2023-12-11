@@ -15,6 +15,7 @@ def set_wheel_speeds(left_wheel_speed, right_wheel_speed, cur_left_wheel_speed=N
     
     # PID feedback if previous speed is given
     if (cur_left_wheel_speed is not None and cur_right_wheel_speed is not None):
+        global left_integral, right_integral, left_prev_error, right_prev_error
         left_error = left_wheel_speed - cur_left_wheel_speed
         right_error = right_wheel_speed - cur_right_wheel_speed
 

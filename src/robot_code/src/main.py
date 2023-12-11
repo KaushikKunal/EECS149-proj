@@ -4,20 +4,30 @@ from time import sleep, time
 
 from src.sensor.encoders import get_wheel_dists
 from src.sensor.potentiometers import get_pot_angles, calibrate_pot
+# from src.sensor.imu import get_imu_data
 from src.actuator.motors import set_wheel_speeds
 from src.actuator.buzzer import play_fatal_sound
-# from controller.
+# from src.controller.reversing_controller import 
 
 MAIN_LOOP_FREQ = 5  # Hz  TODO CHANGE TO HIGHER VALUE
 DRIVING_MODE = "forwards"  # or "reversing"
 
 
 yellow_led = robot.YellowLED()
-imu = robot.IMU()
 
 buttonA = robot.ButtonA()
 buttonB = robot.ButtonB()
 buttonC = robot.ButtonC()
+
+# TODO
+def change_driving_mode():
+    global DRIVING_MODE
+    if (DRIVING_MODE == "forwards"):
+        DRIVING_MODE = "reversing"
+    elif (DRIVING_MODE == "reversing"):
+        DRIVING_MODE = "forwards"
+    else:
+        error("invalid driving mode", fatal=True)
 
 def error(msg, fatal=False):
     print("ERROR: " + msg)
@@ -28,6 +38,7 @@ def error(msg, fatal=False):
 
 
 def main():
+    #calibrate_pot()
     prev_left_wheel_dist, prev_right_wheel_dist = get_wheel_dists()
     while True:
         start_time = time()
@@ -41,25 +52,30 @@ def main():
         pololu_pot_angle, hitch_pot_angle = get_pot_angles(radians=True)
 
         print("L/R vels (m/s): {}, {}".format(left_wheel_vel, right_wheel_vel))
-        # print("Pololu/hitch angles (rad): {}, {}".format(pololu_pot_angle, hitch_pot_angle))
+        print("Pololu/hitch angles (rad): {}, {}".format(pololu_pot_angle, hitch_pot_angle))
 
-        # pass sensor values to controller
-        # TODO
+        if DRIVING_MODE == "forwards":
+            left_motor_speed =  0.1
+            right_motor_speed = 0.1
 
-        # INPUT TO CONTROLLER
-        # pololu_pot_angle
-        # hitch_pot_angle
-        # 
+        elif DRIVING_MODE == "reversing":
+            # pass sensor values to controller
+            # TODO
+            pass
 
-        # OUTPUT FROM CONTROLLER
-        left_motor_speed =  0.1
-        right_motor_speed = 0.1
+            # INPUT TO CONTROLLER
+            # pololu_pot_angle
+            # hitch_pot_angle
+            # 
+
+            # OUTPUT FROM CONTROLLER
+            # left_motor_speed =  0.1
+            # right_motor_speed = 0.1
+
 
         
         # actuate motors with feedback
         set_wheel_speeds(left_motor_speed, right_motor_speed, left_wheel_vel, right_wheel_vel)
-
-            
 
         # fix loop frequency
         end_time = time()
