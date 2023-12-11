@@ -21,4 +21,4 @@ print("press B to run :D")
 while not buttonB.check():
     pass
 print("RUNNING...")
-import src.test_encoder  # replace this with the file to run
+import src.main  # replace this with the file to run
