@@ -5,6 +5,7 @@ from time import sleep, time
 from src.sensor.encoders import get_wheel_dists
 from src.sensor.potentiometers import get_pot_angles, calibrate_pot
 # from src.sensor.imu import get_imu_data
+from src.bluetooth import get_bluetooth_commands
 from src.actuator.motors import set_wheel_speeds
 from src.actuator.buzzer import play_fatal_sound
 # from src.controller.reversing_controller import 
@@ -54,9 +55,23 @@ def main():
         print("L/R vels (m/s): {}, {}".format(left_wheel_vel, right_wheel_vel))
         print("Pololu/hitch angles (rad): {}, {}".format(pololu_pot_angle, hitch_pot_angle))
 
+        # read bluetooth commands
+        commands = get_bluetooth_commands()
+        # if (commands["up"]):
+        #     DRIVING_MODE = "forwards"
+        # elif (commands["down"]):
+        #     DRIVING_MODE = "reversing"
+
+        print("commands:", commands)
+
         if DRIVING_MODE == "forwards":
             left_motor_speed =  0.1
             right_motor_speed = 0.1
+            
+            if (commands["left"]):
+                left_motor_speed = 0
+            if (commands["right"]):
+                right_motor_speed = 0
 
         elif DRIVING_MODE == "reversing":
             # pass sensor values to controller
@@ -69,8 +84,8 @@ def main():
             # 
 
             # OUTPUT FROM CONTROLLER
-            # left_motor_speed =  0.1
-            # right_motor_speed = 0.1
+            left_motor_speed =  -0.1
+            right_motor_speed = -0.1
 
 
         

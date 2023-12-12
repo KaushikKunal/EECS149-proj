@@ -10,6 +10,16 @@ uart.write("Hello from the other side")
 
 print("LISTENING FOR BLUETOOTH")
 
+"""UP: 516 507
+DOWN: 615 606
+LEFT:714 705
+RIGHT:813 804
+1: 11: 10;
+2: 219 20:
+3: 318 309
+4: 417 408"""
+
+
 while True:
     # Check if data is available
     
