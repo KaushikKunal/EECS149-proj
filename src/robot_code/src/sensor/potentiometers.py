@@ -35,7 +35,6 @@ def get_pololu_pot_angle():
     manual_offset = 0
 
     global pololu_ma
-    start_time = time_ns()
     # take multiple readings and average
     inst_sum = 0
     for _ in range(inst_pololu_avg_n):
@@ -44,7 +43,6 @@ def get_pololu_pot_angle():
         inst_sum += angle * reverse
     inst_avg = inst_sum / inst_pololu_avg_n + manual_offset
     pololu_ma = (pololu_ma * (pololu_ma_n - 1) + inst_avg) / pololu_ma_n
-    end_time = time_ns()
     # print("sensor reading time (ms):", (end_time - start_time)/1000000)
     return pololu_ma
 

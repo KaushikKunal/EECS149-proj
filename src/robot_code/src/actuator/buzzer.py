@@ -5,4 +5,4 @@ buzzer = robot.Buzzer()
 
 def play_fatal_sound():
     buzzer.play_in_background('<g-8r8<g-8r8<g-8')  # error sound
-    sleep(1)
+    # sleep(1)

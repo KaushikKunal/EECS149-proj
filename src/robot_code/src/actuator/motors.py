@@ -2,9 +2,9 @@ from pololu_3pi_2040_robot import robot
 from time import sleep, time
 
 motors = robot.Motors()
-kp = 0.1  # Adjust proportional gain based on your system
-ki = 0.01  # Adjust integral gain based on your system
-kd = 0.01  # Adjust derivative gain based on your system
+kp = 0.8  # Adjust proportional gain based on your system
+ki = 0.2  # Adjust integral gain based on your system
+kd = 0.3  # Adjust derivative gain based on your system
 left_integral = 0
 right_integral = 0
 left_prev_error = 0
@@ -28,8 +28,8 @@ def set_wheel_speeds(left_wheel_speed, right_wheel_speed, cur_left_wheel_speed=N
         left_prev_error = left_error
         right_prev_error = right_error
 
-        left_motor_speed = kp*left_error + ki*left_integral + kd*left_derivative
-        right_motor_speed = kp*right_error + ki*right_integral + kd*right_derivative
+        left_wheel_speed = kp*left_error + ki*left_integral + kd*left_derivative
+        right_wheel_speed = kp*right_error + ki*right_integral + kd*right_derivative
 
     # convert wheel speeds to motor speeds
     left_motor_speed = left_wheel_speed * motors.MAX_SPEED/1.5
