@@ -39,7 +39,7 @@ def error(msg, fatal=False):
 
 
 def main():
-    #calibrate_pot()
+    # calibrate_pot()
     prev_left_wheel_dist, prev_right_wheel_dist = get_wheel_dists()
     while True:
         start_time = time()
@@ -50,23 +50,27 @@ def main():
         left_wheel_vel = (left_wheel_dist - prev_left_wheel_dist) * MAIN_LOOP_FREQ
         right_wheel_vel = (right_wheel_dist - prev_right_wheel_dist) * MAIN_LOOP_FREQ
         prev_left_wheel_dist, prev_right_wheel_dist = left_wheel_dist, right_wheel_dist
-        pololu_pot_angle, hitch_pot_angle = get_pot_angles(radians=True)
+        # pololu_pot_angle, hitch_pot_angle = get_pot_angles(radians=True)
+        pololu_pot_angle, hitch_pot_angle = get_pot_angles(radians=False)
 
         print("L/R vels (m/s): {}, {}".format(left_wheel_vel, right_wheel_vel))
         print("Pololu/hitch angles (rad): {}, {}".format(pololu_pot_angle, hitch_pot_angle))
 
         # read bluetooth commands
         commands = get_bluetooth_commands()
-        # if (commands["up"]):
-        #     DRIVING_MODE = "forwards"
-        # elif (commands["down"]):
-        #     DRIVING_MODE = "reversing"
+        if (commands["up"]):
+            DRIVING_MODE = "forwards"
+        elif (commands["down"]):
+            DRIVING_MODE = "reversing"
+        else:
+            DRIVING_MODE = "halt"
 
         print("commands:", commands)
+        
 
         if DRIVING_MODE == "forwards":
-            left_motor_speed =  0.1
-            right_motor_speed = 0.1
+            left_motor_speed =  0.3
+            right_motor_speed = 0.3
             
             if (commands["left"]):
                 left_motor_speed = 0
@@ -84,8 +88,11 @@ def main():
             # 
 
             # OUTPUT FROM CONTROLLER
-            left_motor_speed =  -0.1
-            right_motor_speed = -0.1
+            left_motor_speed =  -0.3
+            right_motor_speed = -0.3
+        elif DRIVING_MODE == "halt":
+            left_motor_speed =  0
+            right_motor_speed = 0
 
 
         

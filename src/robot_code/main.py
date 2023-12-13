@@ -19,6 +19,7 @@ print("press B to run :D")
 
 # wait until B pressed
 while not buttonB.check():
-    pass
+    led(1)
+led(0)
 print("RUNNING...")
 import src.main  # replace this with the file to run

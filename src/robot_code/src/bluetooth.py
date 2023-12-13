@@ -22,6 +22,7 @@ up_blueooth_messages =   {"507": "up", "606": "down", "705": "left", "804": "rig
 def get_bluetooth_commands():
     if uart.any():
         data = uart.read()  
+        uart.write("Received: " + str(data))
 
         # check for down presses
         for down_msg in down_blueooth_messages:
@@ -36,13 +37,3 @@ def get_bluetooth_commands():
                 commands[up_cmd] = False
         
     return commands
-while True:
-    # Check if data is available
-    
-    if uart.any():
-        # Read all available data 
-        data = uart.read()  
-        
-        # Print message  
-        print(data)
-    time.sleep_ms(50)

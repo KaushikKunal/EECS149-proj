@@ -1,7 +1,7 @@
 from machine import ADC, Pin
 from math import sqrt, pi
 from pololu_3pi_2040_robot import robot
-from time import sleep
+from time import sleep, time_ns
 
 # --------------- #
 # ---MAIN CODE--- #
@@ -13,37 +13,61 @@ POLOLU_POT_PIN = 27  # GPIO pin of pololu potentiometer
 HITCH_ADC = ADC(HITCH_POT_PIN)
 POLOLU_ADC = ADC(POLOLU_POT_PIN)
 
+hitch_ma = 0
+pololu_ma = 0
+
+# moving average params
+hitch_ma_n = 1
+pololu_ma_n = 1
+
+# instantaneous average params
+inst_pololu_avg_n = 25
+inst_hitch_avg_n = 25
+
 # returns angle of pololu potentiometer in degrees
 def get_pololu_pot_angle():
-    # # tunable params
-    # max_pololu_pot_angle = 210
-    # straight_voltage = 1.65  # volts when pololu is straight
-
-    # u16_val = POLOLU_ADC.read_u16()
-    # voltage = u16_val/65535 * 3.3 - straight_voltage
-    # angle = voltage/3.3 * max_pololu_pot_angle
-
     # tunable params
-    min_u16_val = 0
-    max_u16_val = 65535
-    min_angle = -105
-    max_angle = 105
+    min_u16_val = 61610
+    max_u16_val = 62374
+    min_angle = -45
+    max_angle = 45
+    reverse = 1
+    manual_offset = 0
 
-    u16_val = HITCH_ADC.read_u16()
-    angle = (u16_val - min_u16_val)/(max_u16_val - min_u16_val) * (max_angle - min_angle) + min_angle
-    return angle
+    global pololu_ma
+    start_time = time_ns()
+    # take multiple readings and average
+    inst_sum = 0
+    for _ in range(inst_pololu_avg_n):
+        u16_val = POLOLU_ADC.read_u16()
+        angle = (u16_val - min_u16_val)/(max_u16_val - min_u16_val) * (max_angle - min_angle) + min_angle
+        inst_sum += angle * reverse
+    inst_avg = inst_sum / inst_pololu_avg_n + manual_offset
+    pololu_ma = (pololu_ma * (pololu_ma_n - 1) + inst_avg) / pololu_ma_n
+    end_time = time_ns()
+    # print("sensor reading time (ms):", (end_time - start_time)/1000000)
+    return pololu_ma
 
 # returns angle of hitch potentiometer in degrees
 def get_hitch_pot_angle():
     # tunable params
-    min_u16_val = 0
-    max_u16_val = 65535
-    min_angle = -105
-    max_angle = 105
+    min_u16_val = 20400
+    max_u16_val = 48463
+    min_angle = -60
+    max_angle = 60
+    reverse = 1
+    manual_offset = 0
 
-    u16_val = HITCH_ADC.read_u16()
-    angle = (u16_val - min_u16_val)/(max_u16_val - min_u16_val) * (max_angle - min_angle) + min_angle
-    return angle
+    global hitch_ma
+    # take multiple readings and average
+    inst_sum = 0
+    for _ in range(inst_hitch_avg_n):
+        u16_val = HITCH_ADC.read_u16()
+        angle = (u16_val - min_u16_val)/(max_u16_val - min_u16_val) * (max_angle - min_angle) + min_angle
+        inst_sum += angle * reverse
+    inst_avg = inst_sum / inst_hitch_avg_n + manual_offset
+    hitch_ma = (hitch_ma * (hitch_ma_n - 1) + inst_avg) / hitch_ma_n
+    return hitch_ma
 
 # returns tuple of (pololu angle, hitch angle)
 def get_pot_angles(radians=False):
@@ -60,7 +84,7 @@ def get_pot_angles(radians=False):
 # ---CALIBRATION CODE--- #
 # ---------------------- #
 
-CAL_POT_PIN = 27  # GPIO pin of potentiometer to calibrate
+CAL_POT_PIN = 28  # GPIO pin of potentiometer to calibrate
 NUM_READINGS = 1000
 READING_FREQ = 100  # Hz
 
@@ -90,5 +114,6 @@ def calibrate_pot():
             pass
 
         # take readings and print
+        print("calculating...")
         average, std_dev = get_average_reading(adc)
         print("average: {}, std: {}".format(average, std_dev))
