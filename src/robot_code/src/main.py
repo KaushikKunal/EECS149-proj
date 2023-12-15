@@ -44,6 +44,7 @@ def main():
     # calibrate_pot()
     prev_left_wheel_dist, prev_right_wheel_dist = get_wheel_dists()
     i = 0
+    desired_angle = 0
     while True:
         start_time = time_ns()
 
@@ -73,43 +74,63 @@ def main():
         elif (commands["2"] and ASSISTED_MODE):
             ASSISTED_MODE = False
             send_bluetooth_message("ASSISTED MODE OFF\n")
+        if (commands["3"] and desired_angle != -0.1):
+            desired_angle = -0.1
+            send_bluetooth_message("resetting desired angle\n")
+        if (commands["4"]):
+            send_bluetooth_message("\n")
         
         if(i % int(MAIN_LOOP_FREQ/PRINT_FREQ) == 0):
             print("L/R vels (m/s): {}, {}".format(left_wheel_vel, right_wheel_vel))
             print("Pololu/hitch angles (rad): {}, {}".format(pololu_pot_angle, hitch_pot_angle))
             print("commands:", commands)
+            print("desired_angle:", desired_angle)
+            # send_bluetooth_message("angles: {},{}\n".format(pololu_pot_angle, hitch_pot_angle))
         
         if ASSISTED_MODE:
+            if (commands["right"]):
+                    desired_angle -= 1.5/MAIN_LOOP_FREQ
+            if (commands["left"]):
+                desired_angle += 1.5/MAIN_LOOP_FREQ
+                
             if DRIVING_MODE == "forwards":
 
                 left_motor_speed =  0.3
                 right_motor_speed = 0.3
 
                 radius = 0.085396 # meters
-                desired_angle = 0
-                ang_error = desired_angle - abs(pololu_pot_angle)
+                # desired_angle = 1.5
                 
-                if (commands["left"]):
-                    left_motor_speed = left_motor_speed + radius * ang_error
-                    right_motor_speed = right_motor_speed - radius * ang_error
-                if (commands["right"]):
-                    left_motor_speed = left_motor_speed + radius * -ang_error
-                    right_motor_speed = right_motor_speed - radius * -ang_error
+
+                ang_error = (desired_angle) - pololu_pot_angle - hitch_pot_angle
+                
+                # if (ang_error < 0):
+                left_motor_speed = left_motor_speed - radius * ang_error
+                right_motor_speed = right_motor_speed + radius * ang_error
+                # if (ang_error > 0):
+                #     left_motor_speed = left_motor_speed + radius * -ang_error
+                #    right_motor_speed = right_motor_speed - radius * -ang_error
 
             elif DRIVING_MODE == "reversing":
 
                 radius = 0.085396 # meters
-                desired_angle = 0
-                ang_error = desired_angle - abs(pololu_pot_angle)
+                # desired_angle = 3
+                # if (commands["right"]):
+                #     desired_angle -= 1.5/MAIN_LOOP_FREQ
+                # if (commands["left"]):
+                #     desired_angle += 1.5/MAIN_LOOP_FREQ
+                ang_error = (desired_angle) - pololu_pot_angle - hitch_pot_angle
 
                 left_motor_speed =  -0.3
                 right_motor_speed = -0.3
-                if (commands["left"]):
-                    left_motor_speed = left_motor_speed + radius * ang_error
-                    right_motor_speed = right_motor_speed - radius * ang_error
-                if (commands["right"]):
-                    left_motor_speed = left_motor_speed + radius * -ang_error  
-                    right_motor_speed = right_motor_speed - radius * -ang_error
+                left_motor_speed = left_motor_speed - radius * ang_error
+                right_motor_speed = right_motor_speed + radius * ang_error
+                # if (ang_error > 0):
+                #     left_motor_speed = left_motor_speed + radius * -ang_error
+                #     right_motor_speed = right_motor_speed - radius * -ang_error
+                # if (ang_error < 0):
+                #     left_motor_speed = left_motor_speed + radius * ang_error  
+                #     right_motor_speed = right_motor_speed - radius * ang_error
 
             elif DRIVING_MODE == "halt":
                 left_motor_speed =  0
@@ -131,8 +152,8 @@ def main():
                 right_motor_speed *= 1.5
             if (commands["right"]):
                 left_motor_speed *= 1.5
-            
-            set_wheel_speeds(left_motor_speed, right_motor_speed)  # without feedback
+            set_wheel_speeds(left_motor_speed, right_motor_speed, left_wheel_vel, right_wheel_vel)
+            # set_wheel_speeds(left_motor_speed, right_motor_speed)  # without feedback
 
         # fix loop frequency
         end_time = time_ns()
